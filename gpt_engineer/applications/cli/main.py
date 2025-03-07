@@ -63,6 +63,7 @@ from gpt_engineer.core.git import stage_uncommitted_to_git
 from gpt_engineer.core.preprompts_holder import PrepromptsHolder
 from gpt_engineer.core.prompt import Prompt
 from gpt_engineer.core.requirements_loader import RequirementsLoader
+from gpt_engineer.core.prompt_type import CodeGenerationPrompt
 from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen, self_heal
 
 app = typer.Typer(
@@ -129,7 +130,8 @@ def load_prompt(
 
     schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
     requirements_loader = RequirementsLoader(requirements_dir, schema_path)
-    prompt_str = requirements_loader.load_requirements(input_repo.path)
+    user_prompt = requirements_loader.load_requirements(input_repo.path)
+    prompt_type = CodeGenerationPrompt(user_prompt)
 
     if not prompt_str:
         if not improve_mode:
@@ -152,7 +154,7 @@ def load_prompt(
             raise ValueError("The provided file at --entrypoint-prompt does not exist")
 
     if image_directory == "":
-        return Prompt(prompt_str, entrypoint_prompt=entrypoint_prompt)
+        return Prompt(prompt_type, entrypoint_prompt=entrypoint_prompt)
 
     full_image_directory = concatenate_paths(input_repo.path, image_directory)
     if os.path.isdir(full_image_directory):
