@@ -62,6 +62,7 @@ from gpt_engineer.core.files_dict import FilesDict
 from gpt_engineer.core.git import stage_uncommitted_to_git
 from gpt_engineer.core.preprompts_holder import PrepromptsHolder
 from gpt_engineer.core.prompt import Prompt
+from gpt_engineer.core.requirements_loader import RequirementsLoader
 from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen, self_heal
 
 app = typer.Typer(
@@ -126,31 +127,9 @@ def load_prompt(
         The loaded or inputted prompt.
     """
 
-    requirements_path = os.path.join(input_repo.path, requirements_dir)
-    if not os.path.isdir(requirements_path):
-        raise ValueError(f"The path {requirements_path} is not a directory.")
-
-    # Load JSON schema for validation
     schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
-    with open(schema_path, 'r') as schema_file:
-        schema = json.load(schema_file)
-
-    prompt_str = ""
-    for filename in sorted(os.listdir(requirements_path)):
-        if filename.endswith(".json"):
-            file_path = os.path.join(requirements_path, filename)
-            if os.path.isfile(file_path):
-                with open(file_path, 'r') as file:
-                    try:
-                        data = json.load(file)
-                        # Validate JSON against schema
-                        jsonschema.validate(instance=data, schema=schema)
-                        requirement_text = data.get("requirementText", "")
-                        prompt_str += requirement_text + "\n"
-                    except jsonschema.exceptions.ValidationError as e:
-                        print(f"Warning: {filename} does not comply with the schema. {e.message}")
-                    except json.JSONDecodeError:
-                        print(f"Warning: {filename} is not a valid JSON file.")
+    requirements_loader = RequirementsLoader(requirements_dir, schema_path)
+    prompt_str = requirements_loader.load_requirements(input_repo.path)
 
     if not prompt_str:
         if not improve_mode:
