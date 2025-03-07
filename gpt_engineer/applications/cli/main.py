@@ -32,6 +32,7 @@ import os
 import platform
 import subprocess
 import sys
+import jsonschema
 
 from pathlib import Path
 
@@ -129,6 +130,11 @@ def load_prompt(
     if not os.path.isdir(requirements_path):
         raise ValueError(f"The path {requirements_path} is not a directory.")
 
+    # Load JSON schema for validation
+    schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
+    with open(schema_path, 'r') as schema_file:
+        schema = json.load(schema_file)
+
     prompt_str = ""
     for filename in sorted(os.listdir(requirements_path)):
         if filename.endswith(".json"):
@@ -137,8 +143,12 @@ def load_prompt(
                 with open(file_path, 'r') as file:
                     try:
                         data = json.load(file)
-                        requirement_text = data.get("requirement_text", "")
+                        # Validate JSON against schema
+                        jsonschema.validate(instance=data, schema=schema)
+                        requirement_text = data.get("requirementText", "")
                         prompt_str += requirement_text + "\n"
+                    except jsonschema.exceptions.ValidationError as e:
+                        print(f"Warning: {filename} does not comply with the schema. {e.message}")
                     except json.JSONDecodeError:
                         print(f"Warning: {filename} is not a valid JSON file.")
 
