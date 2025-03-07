@@ -131,10 +131,16 @@ def load_prompt(
 
     prompt_str = ""
     for filename in sorted(os.listdir(requirements_path)):
-        file_path = os.path.join(requirements_path, filename)
-        if os.path.isfile(file_path):
-            with open(file_path, 'r') as file:
-                prompt_str += file.read() + "\n"
+        if filename.endswith(".json"):
+            file_path = os.path.join(requirements_path, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as file:
+                    try:
+                        data = json.load(file)
+                        requirement_text = data.get("requirement_text", "")
+                        prompt_str += requirement_text + "\n"
+                    except json.JSONDecodeError:
+                        print(f"Warning: {filename} is not a valid JSON file.")
 
     if not prompt_str:
         if not improve_mode:
