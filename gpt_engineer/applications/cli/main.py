@@ -130,7 +130,7 @@ def load_prompt(
 
     schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
     requirements_loader = RequirementsLoader(requirements_dir, schema_path)
-    user_prompt = requirements_loader.load_requirements(input_repo.path)
+    prompt_str = requirements_loader.load_requirements(input_repo.path)
     prompt_type = CodeGenerationPrompt(user_prompt)
 
     if not prompt_str:

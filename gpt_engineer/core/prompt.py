@@ -1,4 +1,5 @@
 import json
+from typing import Dict, Optional
 
 from gpt_engineer.core.prompt_type import PromptType
 
