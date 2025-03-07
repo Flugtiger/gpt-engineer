@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 import backoff
+import httpx
 import openai
 import pyperclip
 
@@ -376,6 +377,7 @@ class AI:
                 temperature=self.temperature,
                 streaming=self.streaming,
                 callbacks=[StreamingStdOutCallbackHandler()],
+                http_client=httpx.Client(verify=False)
             )
 
 
