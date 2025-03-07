@@ -17,6 +17,7 @@ class PromptType:
         This method should be overridden by subclasses for specific behavior.
         """
         raise NotImplementedError("Subclasses should implement this method.")
+
 class CodeGenerationPrompt(PromptType):
     def __init__(self, user_prompt: str):
         system_prompt = "Generate code based on the following requirements."
