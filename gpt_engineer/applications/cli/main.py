@@ -105,7 +105,7 @@ def concatenate_paths(base_path, sub_path):
 def load_prompt(
     input_repo: DiskMemory,
     improve_mode: bool,
-    prompt_file: str,
+    requirements_dir: str,
     image_directory: str,
     entrypoint_prompt_file: str = "",
 ) -> Prompt:
@@ -121,19 +121,22 @@ def load_prompt(
 
     Returns
     -------
-    str
+    Prompt
         The loaded or inputted prompt.
     """
 
-    if os.path.isdir(prompt_file):
-        raise ValueError(
-            f"The path to the prompt, {prompt_file}, already exists as a directory. No prompt can be read from it. Please specify a prompt file using --prompt_file"
-        )
-    prompt_str = input_repo.get(prompt_file)
-    if prompt_str:
-        print(colored("Using prompt from file:", "green"), prompt_file)
-        print(prompt_str)
-    else:
+    requirements_path = os.path.join(input_repo.path, requirements_dir)
+    if not os.path.isdir(requirements_path):
+        raise ValueError(f"The path {requirements_path} is not a directory.")
+
+    prompt_str = ""
+    for filename in sorted(os.listdir(requirements_path)):
+        file_path = os.path.join(requirements_path, filename)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                prompt_str += file.read() + "\n"
+
+    if not prompt_str:
         if not improve_mode:
             prompt_str = input(
                 "\nWhat application do you want gpt-engineer to generate?\n"
