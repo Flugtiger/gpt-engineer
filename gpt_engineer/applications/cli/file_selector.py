@@ -414,6 +414,98 @@ class FileSelector:
             all_files = filter_by_gitignore(project_path, all_files)
 
         return sorted(all_files, key=lambda x: Path(x).as_posix())
+        
+    def select_subfolder_files(self, subfolder_path: Union[str, Path]) -> List[str]:
+        """
+        Selects all files in a specific subfolder of the project path.
+        
+        Parameters
+        ----------
+        subfolder_path : Union[str, Path]
+            The path to the subfolder relative to the project path.
+            
+        Returns
+        -------
+        List[str]
+            A list of strings representing the relative paths of all files in the subfolder.
+            
+        Raises
+        ------
+        FileNotFoundError
+            If the specified subfolder does not exist.
+        """
+        full_subfolder_path = Path(self.project_path) / subfolder_path
+        
+        if not full_subfolder_path.exists() or not full_subfolder_path.is_dir():
+            raise FileNotFoundError(f"Subfolder not found: {subfolder_path}")
+            
+        selected_files = []
+        
+        # Get all files in the subfolder
+        for path in full_subfolder_path.glob("**/*"):
+            if path.is_file():
+                # Get path relative to project_path
+                rel_path = path.relative_to(Path(self.project_path))
+                parts = rel_path.parts
+                
+                # Apply the same filtering as in get_current_files
+                if any(part.startswith(".") for part in parts):
+                    continue  # Skip hidden files
+                if any(part in self.IGNORE_FOLDERS for part in parts):
+                    continue
+                if rel_path.name == "prompt":
+                    continue  # Skip files named 'prompt'
+                    
+                selected_files.append(str(rel_path))
+        
+        # Apply gitignore filtering if applicable
+        if is_git_repo(self.project_path) and "projects" not in Path(self.project_path).parts:
+            selected_files = filter_by_gitignore(self.project_path, selected_files)
+            
+        if not selected_files:
+            print(f"No files found in subfolder: {subfolder_path}")
+            
+        return sorted(selected_files, key=lambda x: Path(x).as_posix())
+
+
+    def get_subfolder_files_dict(self, subfolder_path: Union[str, Path]) -> FilesDict:
+        """
+        Returns a FilesDict containing all files in a specific subfolder of the project path.
+        
+        Parameters
+        ----------
+        subfolder_path : Union[str, Path]
+            The path to the subfolder relative to the project path.
+            
+        Returns
+        -------
+        FilesDict
+            A dictionary with file paths as keys and file contents as values.
+            
+        Raises
+        ------
+        FileNotFoundError
+            If the specified subfolder does not exist.
+        """
+        selected_files = self.select_subfolder_files(subfolder_path)
+        
+        if not selected_files:
+            print(f"No files found in subfolder: {subfolder_path}")
+            return FilesDict({})
+            
+        content_dict = {}
+        for file_path in selected_files:
+            try:
+                with open(
+                    Path(self.project_path) / file_path, "r", encoding="utf-8"
+                ) as content:
+                    content_dict[str(file_path)] = content.read()
+            except FileNotFoundError:
+                print(f"Warning: File not found {file_path}")
+            except UnicodeDecodeError:
+                print(f"Warning: File not UTF-8 encoded {file_path}, skipping")
+                
+        return FilesDict(content_dict)
 
 
 class DisplayablePath(object):
