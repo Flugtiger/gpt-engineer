@@ -151,12 +151,13 @@ class CliAgent(BaseAgent):
 
     def init(self, prompt: Prompt) -> FilesDict:
         """
-        Generates a new piece of code using the AI and step bundle based on the provided prompt.
+        Generates a new piece of code using the AI based on the provided prompt.
+        This function only generates the model code without creating an entrypoint or executing the code.
 
         Parameters
         ----------
-        prompt : str
-            A string prompt that guides the code generation process.
+        prompt : Prompt
+            A prompt object that guides the code generation process.
 
         Returns
         -------
@@ -166,19 +167,6 @@ class CliAgent(BaseAgent):
 
         files_dict = self.code_gen_fn(
             self.ai, prompt, self.memory, self.preprompts_holder
-        )
-        entrypoint = gen_entrypoint(
-            self.ai, prompt, files_dict, self.memory, self.preprompts_holder
-        )
-        combined_dict = {**files_dict, **entrypoint}
-        files_dict = FilesDict(combined_dict)
-        files_dict = self.process_code_fn(
-            self.ai,
-            self.execution_env,
-            files_dict,
-            preprompts_holder=self.preprompts_holder,
-            prompt=prompt,
-            memory=self.memory,
         )
         return files_dict
 
