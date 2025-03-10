@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 def chat_to_files_dict(chat: str) -> FilesDict:
     """
     Converts a chat string containing file paths and code blocks into a FilesDict object.
+    Handles nested code blocks by counting start and end tokens.
 
     Args:
     - chat (str): The chat string containing file paths and code blocks.
@@ -45,27 +46,68 @@ def chat_to_files_dict(chat: str) -> FilesDict:
     Returns:
     - FilesDict: A dictionary with file paths as keys and code blocks as values.
     """
-    # Regex to match file paths and associated code blocks
-    regex = r"(\S+)\n\s*SOF```[^\n]*\n(.+?)\n```EOF\n"
-    matches = re.finditer(regex, chat, re.DOTALL)
-
     files_dict = FilesDict()
-    for match in matches:
-        # Clean and standardize the file path
-        path = re.sub(r'[\:<>"|?*]', "", match.group(1))
-        path = re.sub(r"^\[(.*)\]$", r"\1", path)
-        path = re.sub(r"^`(.*)`$", r"\1", path)
-        path = re.sub(r"[\]\:]$", "", path)
-
-        # Extract and clean the code content
-        content = match.group(2)
-        lines = [line if line != "\```" else "```" for line in content.split("\n")]
-        content = "\n".join(lines)
-
-
-        # Add the cleaned path and content to the FilesDict
-        files_dict[path.strip()] = content.strip()
-
+    lines = chat.split('\n')
+    
+    current_path = None
+    current_content = []
+    in_code_block = False
+    start_token_count = 0
+    end_token_count = 0
+    
+    for i, line in enumerate(lines):
+        # If we're not in a code block, look for a file path followed by SOF```
+        if not in_code_block:
+            # Check if this line contains a file path (non-empty line)
+            if line.strip() and i < len(lines) - 1 and 'SOF```' in lines[i + 1]:
+                current_path = line.strip()
+                # Clean and standardize the file path
+                current_path = re.sub(r'[\:<>"|?*]', "", current_path)
+                current_path = re.sub(r"^\[(.*)\]$", r"\1", current_path)
+                current_path = re.sub(r"^`(.*)`$", r"\1", current_path)
+                current_path = re.sub(r"[\]\:]$", "", current_path)
+                current_path = current_path.strip()
+                
+                # Reset for new file
+                current_content = []
+                start_token_count = 0
+                end_token_count = 0
+            elif 'SOF```' in line and current_path:
+                in_code_block = True
+                start_token_count = 1
+                # Skip the SOF``` line itself
+                continue
+        else:
+            # We're inside a code block
+            if '```EOF' in line:
+                end_token_count += 1
+                # If we've matched all start tokens with end tokens, the block is complete
+                if end_token_count >= start_token_count:
+                    in_code_block = False
+                    # Process and add the file to our dictionary
+                    content = '\n'.join(current_content)
+                    # Clean escaped backticks
+                    content = content.replace("\\```", "```")
+                    files_dict[current_path] = content.strip()
+                    current_path = None
+                    current_content = []
+                else:
+                    # This is a nested end token, include it in the content
+                    current_content.append(line)
+            elif 'SOF```' in line:
+                # Nested start token
+                start_token_count += 1
+                current_content.append(line)
+            else:
+                # Regular content line
+                current_content.append(line)
+    
+    # Handle any remaining open code blocks (though this shouldn't happen in well-formed input)
+    if in_code_block and current_path and current_content:
+        content = '\n'.join(current_content)
+        content = content.replace("\\```", "```")
+        files_dict[current_path] = content.strip()
+    
     return files_dict
 
 
