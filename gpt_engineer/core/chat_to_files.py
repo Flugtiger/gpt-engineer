@@ -46,7 +46,7 @@ def chat_to_files_dict(chat: str) -> FilesDict:
     - FilesDict: A dictionary with file paths as keys and code blocks as values.
     """
     # Regex to match file paths and associated code blocks
-    regex = r"(\S+)\n\s*```[^\n]*\n(.+?)```"
+    regex = r"(\S+)\n\s*SOF```[^\n]*\n(.+?)\n```EOF\n"
     matches = re.finditer(regex, chat, re.DOTALL)
 
     files_dict = FilesDict()
@@ -59,6 +59,9 @@ def chat_to_files_dict(chat: str) -> FilesDict:
 
         # Extract and clean the code content
         content = match.group(2)
+        lines = [line if line != "\```" else "```" for line in content.split("\n")]
+        content = "\n".join(lines)
+
 
         # Add the cleaned path and content to the FilesDict
         files_dict[path.strip()] = content.strip()
