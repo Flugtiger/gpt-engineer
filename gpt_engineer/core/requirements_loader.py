@@ -3,17 +3,18 @@ import json
 import jsonschema
 
 class RequirementsLoader:
-    def __init__(self, requirements_dir: str, schema_path: str):
-        self.requirements_dir = requirements_dir
-        self.schema_path = schema_path
+    def __init__(self, repo_path: str):
+        self.requirements_dir = "requirements/model"
+        self.repo_path = repo_path
+        self.schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
         self.schema = self._load_schema()
 
     def _load_schema(self):
         with open(self.schema_path, 'r') as schema_file:
             return json.load(schema_file)
 
-    def load_requirements(self, base_path: str) -> str:
-        requirements_path = os.path.join(base_path, self.requirements_dir)
+    def load_requirements(self) -> str:
+        requirements_path = os.path.join(self.repo_path, self.requirements_dir)
         if not os.path.isdir(requirements_path):
             raise ValueError(f"The path {requirements_path} is not a directory.")
 

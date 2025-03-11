@@ -55,6 +55,7 @@ from gpt_engineer.core.default.paths import PREPROMPTS_PATH, memory_path
 from gpt_engineer.core.default.steps import (
     execute_entrypoint,
     gen_code,
+    gen_code_application,
     handle_improve_mode,
     improve_fn as improve_fn,
 )
@@ -107,8 +108,8 @@ def concatenate_paths(base_path, sub_path):
 def load_prompt(
     input_repo: DiskMemory,
     improve_mode: bool,
-    requirements_dir: str,
     image_directory: str,
+    application_mode: bool,
     entrypoint_prompt_file: str = "",
 ) -> Prompt:
     """
@@ -126,10 +127,15 @@ def load_prompt(
     Prompt
         The loaded or inputted prompt.
     """
-
-    schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
-    requirements_loader = RequirementsLoader(requirements_dir, schema_path)
-    prompt_str = requirements_loader.load_requirements(input_repo.path)
+    if application_mode:
+        prompt_str = """{
+  "type": "command",
+  "name": "createAggregate",
+  "requirementText": "As a User I can create a new Aggregate"
+}"""
+    else:
+        requirements_loader = RequirementsLoader(input_repo.path)
+        prompt_str = requirements_loader.load_requirements()
 
     if not prompt_str:
         if not improve_mode:
@@ -305,6 +311,12 @@ def main(
         "-c",
         help="Clarify mode - discuss specification with AI before implementation.",
     ),
+    application_mode: bool = typer.Option(
+        False,
+        '--application',
+        '-app',
+        help="Generate application logic based on the defined commands"
+    ),
     self_heal_mode: bool = typer.Option(
         False,
         "--self-heal",
@@ -334,11 +346,6 @@ def main(
     ),
     debug: bool = typer.Option(
         False, "--debug", "-d", help="Enable debug mode for debugging."
-    ),
-    prompt_file: str = typer.Option(
-        "prompt",
-        "--prompt_file",
-        help="Relative path to a text file containing a prompt.",
     ),
     entrypoint_prompt_file: str = typer.Option(
         "",
@@ -468,8 +475,8 @@ def main(
     prompt = load_prompt(
         DiskMemory(path),
         improve_mode,
-        prompt_file,
         image_directory,
+        application_mode,
         entrypoint_prompt_file,
     )
 
@@ -482,6 +489,8 @@ def main(
         code_gen_fn = clarified_gen
     elif lite_mode:
         code_gen_fn = lite_gen
+    elif application_mode:
+        code_gen_fn = gen_code_application
     else:
         code_gen_fn = gen_code
 
@@ -537,6 +546,9 @@ def main(
                 if not prompt_yesno():
                     files_dict = files_dict_before
 
+        elif application_mode:
+            files_dict_model = FileSelector(project_path).get_subfolder_files_dict('src/domain')
+            files_dict = agent.gen_application(prompt, files_dict_model)
         else:
             files_dict = agent.init(prompt)
             # collect user feedback if user consents
