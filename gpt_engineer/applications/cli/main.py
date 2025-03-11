@@ -127,14 +127,18 @@ def load_prompt(
     Prompt
         The loaded or inputted prompt.
     """
+    requirements_loader = RequirementsLoader(input_repo.path)
     if application_mode:
-        prompt_str = """{
+        try:
+            prompt_str = requirements_loader.load_application_requirements()
+        except ValueError as e:
+            print(f"Warning: {e}. Using default application prompt.")
+            prompt_str = """{
   "type": "command",
   "name": "createAggregate",
   "requirementText": "As a User I can create a new Aggregate"
 }"""
     else:
-        requirements_loader = RequirementsLoader(input_repo.path)
         prompt_str = requirements_loader.load_requirements()
 
     if not prompt_str:
