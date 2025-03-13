@@ -59,7 +59,7 @@ def chat_to_files_dict(chat: str) -> FilesDict:
         # If we're not in a code block, look for a file path followed by SOF```
         if not in_code_block:
             # Check if this line contains a file path (non-empty line)
-            if line.strip() and i < len(lines) - 1 and 'SOF```' in lines[i + 1]:
+            if line.strip() and i < len(lines) - 1 and 'SOF```' == lines[i + 1]:
                 current_path = line.strip()
                 # Clean and standardize the file path
                 current_path = re.sub(r'[\:<>"|?*]', "", current_path)
@@ -72,29 +72,27 @@ def chat_to_files_dict(chat: str) -> FilesDict:
                 current_content = []
                 start_token_count = 0
                 end_token_count = 0
-            elif 'SOF```' in line and current_path:
+            elif 'SOF```' == line and current_path:
                 in_code_block = True
                 start_token_count = 1
                 # Skip the SOF``` line itself
                 continue
         else:
             # We're inside a code block
-            if '```EOF' in line:
+            if '```EOF' == line:
                 end_token_count += 1
                 # If we've matched all start tokens with end tokens, the block is complete
                 if end_token_count >= start_token_count:
                     in_code_block = False
                     # Process and add the file to our dictionary
                     content = '\n'.join(current_content)
-                    # Clean escaped backticks
-                    content = content.replace("\\```", "```")
                     files_dict[current_path] = content.strip()
                     current_path = None
                     current_content = []
                 else:
                     # This is a nested end token, include it in the content
                     current_content.append(line)
-            elif 'SOF```' in line:
+            elif 'SOF```' == line:
                 # Nested start token
                 start_token_count += 1
                 current_content.append(line)
@@ -105,7 +103,6 @@ def chat_to_files_dict(chat: str) -> FilesDict:
     # Handle any remaining open code blocks (though this shouldn't happen in well-formed input)
     if in_code_block and current_path and current_content:
         content = '\n'.join(current_content)
-        content = content.replace("\\```", "```")
         files_dict[current_path] = content.strip()
     
     return files_dict

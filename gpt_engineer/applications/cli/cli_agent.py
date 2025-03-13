@@ -169,6 +169,10 @@ class CliAgent(BaseAgent):
             self.ai, prompt, self.memory, self.preprompts_holder
         )
         return files_dict
+    
+    def gen_application(self, prompt: Prompt, modelFilesDict: FilesDict):
+        files_dict = self.code_gen_fn(self.ai, prompt, modelFilesDict, self.memory, self.preprompts_holder)
+        return files_dict
 
     def improve(
         self,

@@ -94,6 +94,28 @@ def setup_sys_prompt(preprompts: MutableMapping[Union[str, Path], str]) -> str:
     )
 
 
+def setup_sys_prompt_application(preprompts: MutableMapping[Union[str, Path], str]) -> str:
+    """
+    Sets up the system prompt for generating code.
+
+    Parameters
+    ----------
+    preprompts : MutableMapping[Union[str, Path], str]
+        A mapping of preprompt messages to guide the AI model.
+
+    Returns
+    -------
+    str
+        The system prompt message for the AI model.
+    """
+    return (
+        preprompts["roadmap_application"]
+        + preprompts["generate"].replace("FILE_FORMAT", preprompts["file_format"])
+        + "\nUseful to know:\n"
+        + preprompts["philosophy_application"]
+    )
+
+
 def setup_sys_prompt_existing_code(
     preprompts: MutableMapping[Union[str, Path], str]
 ) -> str:
@@ -144,6 +166,46 @@ def gen_code(
     messages = ai.start(
         setup_sys_prompt(preprompts), prompt.to_langchain_content(), step_name=curr_fn()
     )
+    chat = messages[-1].content.strip()
+    memory.log(CODE_GEN_LOG_FILE, "\n\n".join(x.pretty_repr() for x in messages))
+    files_dict = chat_to_files_dict(chat)
+    return files_dict
+
+
+def gen_code_application(
+    ai: AI, prompt: Prompt,
+    files_dict: FilesDict, memory: BaseMemory, preprompts_holder: PrepromptsHolder
+) -> FilesDict:
+    """
+    Generates code from a prompt using AI and returns the generated files.
+
+    Parameters
+    ----------
+    ai : AI
+        The AI model used for generating code.
+    prompt : str
+        The user prompt to generate code from.
+    memory : BaseMemory
+        The memory interface where the code and related data are stored.
+    preprompts_holder : PrepromptsHolder
+        The holder for preprompt messages that guide the AI model.
+
+    Returns
+    -------
+    FilesDict
+        A dictionary of file names to their respective source code content.
+    """
+    preprompts = preprompts_holder.get_preprompts()
+
+    messages = [
+        SystemMessage(content=setup_sys_prompt_application(preprompts)),
+    ]
+
+    # Add files as input
+    messages.append(HumanMessage(content=f"This is the DDD model of the application:\n{files_dict.to_chat()}"))
+    messages.append(HumanMessage(content=prompt.to_langchain_content()))
+
+    messages = ai.next(messages=messages, step_name=curr_fn())
     chat = messages[-1].content.strip()
     memory.log(CODE_GEN_LOG_FILE, "\n\n".join(x.pretty_repr() for x in messages))
     files_dict = chat_to_files_dict(chat)

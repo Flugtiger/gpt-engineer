@@ -129,15 +129,7 @@ def load_prompt(
     """
     requirements_loader = RequirementsLoader(input_repo.path)
     if application_mode:
-        try:
-            prompt_str = requirements_loader.load_application_requirements()
-        except ValueError as e:
-            print(f"Warning: {e}. Using default application prompt.")
-            prompt_str = """{
-  "type": "command",
-  "name": "createAggregate",
-  "requirementText": "As a User I can create a new Aggregate"
-}"""
+        prompt_str = requirements_loader.load_application_requirements()
     else:
         prompt_str = requirements_loader.load_requirements()
 
@@ -551,7 +543,7 @@ def main(
                     files_dict = files_dict_before
 
         elif application_mode:
-            files_dict_model = FileSelector(project_path).get_subfolder_files_dict('src/domain')
+            files_dict_model = FileSelector(project_path).get_subfolder_files_dict('src/model')
             files_dict = agent.gen_application(prompt, files_dict_model)
         else:
             files_dict = agent.init(prompt)

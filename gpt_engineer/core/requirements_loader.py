@@ -4,17 +4,18 @@ import jsonschema
 
 class RequirementsLoader:
     def __init__(self, repo_path: str):
-        self.requirements_dir = "requirements/model"
+        self.requirements_dir = "requirements"
         self.repo_path = repo_path
-        self.schema_path = os.path.join(os.path.dirname(__file__), '..', 'requirements_schema.json')
-        self.schema = self._load_schema()
+        self.model_schema = self._load_schema('model_requirements_schema.json')
+        self.application_schema = self._load_schema('application_requirements_schema.json')
 
-    def _load_schema(self):
-        with open(self.schema_path, 'r') as schema_file:
+    def _load_schema(self, name: str):
+        schema_path = os.path.join(os.path.dirname(__file__), '..', name)
+        with open(schema_path, 'r') as schema_file:
             return json.load(schema_file)
 
     def load_requirements(self) -> str:
-        requirements_path = os.path.join(self.repo_path, self.requirements_dir)
+        requirements_path = os.path.join(self.repo_path, self.requirements_dir, "model")
         if not os.path.isdir(requirements_path):
             raise ValueError(f"The path {requirements_path} is not a directory.")
 
@@ -27,7 +28,7 @@ class RequirementsLoader:
                         try:
                             data = json.load(file)
                             # Validate JSON against schema
-                            jsonschema.validate(instance=data, schema=self.schema)
+                            jsonschema.validate(instance=data, schema=self.model_schema)
                             requirement_text = data.get("requirementText", "")
                             prompt_str += requirement_text + "\n"
                         except jsonschema.exceptions.ValidationError as e:
@@ -45,8 +46,7 @@ class RequirementsLoader:
         str
             A string containing all the application requirements.
         """
-        application_dir = "requirements/application"
-        requirements_path = os.path.join(self.repo_path, application_dir)
+        requirements_path = os.path.join(self.repo_path, self.requirements_dir, "application")
         if not os.path.isdir(requirements_path):
             raise ValueError(f"The path {requirements_path} is not a directory.")
 
@@ -59,9 +59,8 @@ class RequirementsLoader:
                         try:
                             data = json.load(file)
                             # Validate JSON against schema
-                            jsonschema.validate(instance=data, schema=self.schema)
-                            requirement_text = data.get("requirementText", "")
-                            prompt_str += requirement_text + "\n"
+                            jsonschema.validate(instance=data, schema=self.application_schema)
+                            prompt_str += f"{data['type']} '{data['name']}': {data["requirementText"]}\n"
                         except jsonschema.exceptions.ValidationError as e:
                             print(f"Warning: {filename} does not comply with the schema. {e.message}")
                         except json.JSONDecodeError:

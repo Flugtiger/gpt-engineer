@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "requirementText": {
+      "type": "string",
+      "description": "The text of the requirement."
+    },
+    "type": {
+      "type": "string",
+      "description": "The type of the application requirement."
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the interaction"
+    }
+  },
+  "required": ["requirementText", "type", "name"]
+}

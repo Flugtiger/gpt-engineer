@@ -1,2 +1,4 @@
 You will get a list of requirements and you must write a clean DDD Model as code that fulfills all given requirements.
 You will write a very long answer. Make sure that every detail of the Model is, in the end, implemented as code.
+You will not write any infrastructure code, example code or anything else that should not be part of a technology-free domain model.
+Domain services that only use the languages base library to fulfill their tasks are considered 'technology-free', so go ahead and implement them.
